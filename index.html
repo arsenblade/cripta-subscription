@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    div {
+      width: 20%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    button {
+      width: 100%;
+      margin: 10px 0px 5px 0px;
+    }
+  </style>
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnWeb3 First dApp</title>
+</head>
+<body>
+  <script>
+    const SubscriptionContractAddress = "0xcD95034773622f391D9c010232c1d29f5fD48161";
+    const SubscriptionContractABI = [
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_duration",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_cost",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "subscriber",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "expirationTimestamp",
+				"type": "uint256"
+			}
+		],
+		"name": "SubscriptionRenewed",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "cancelSubscription",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_newCost",
+				"type": "uint256"
+			}
+		],
+		"name": "changeSubscriptionCost",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_newDuration",
+				"type": "uint256"
+			}
+		],
+		"name": "changeSubscriptionDuration",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "extendSubscription",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getSubscriptionCost",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getSubscriptionExpiration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "isSubscribed",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "subscribe",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "subscriptionCost",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "subscriptionDuration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "subscriptionExpiration",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "withdraw",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+];
+    let SubscriptionContract = undefined;
+    let signer = undefined;
+
+    // Функция инициализации контракта
+    async function initializeContract() {
+      if (typeof window.ethereum !== 'undefined') {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        try {
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          const accounts = await provider.listAccounts();
+          signer = provider.getSigner(accounts[0]);
+          SubscriptionContract = new ethers.Contract(
+            SubscriptionContractAddress,
+            SubscriptionContractABI,
+            signer
+          );
+        } catch (error) {
+          console.error('Error initializing contract:', error);
+        }
+      } else {
+        console.error('Please install MetaMask or another Ethereum wallet extension.');
+      }
+    }
+
+    // Функция для подписки на услугу
+    async function subscribe() {
+      try {
+        await initializeContract();
+        const subscribe = await SubscriptionContract.subscribe();
+        document.getElementById("textSubscription").innerText = `Вы подписались!`;
+      } catch (error) {
+        console.error('Error getting wallet:', error);
+      }
+    }
+
+    // Функция для проверки статуса подписки
+    async function isSubscribed() { //проверка подписки
+      try {
+        await initializeContract();
+        const user = document.getElementById("wallet").value;
+        const isSubscribe = await SubscriptionContract.isSubscribed(user);
+        document.getElementById("textSubscription").innerText = `${isSubscribe ? 'Подписка активна' : 'Подписка неактивна'}`;
+      } catch (error) {
+        console.error('Error is subscribe:', error);
+      }
+    }
+
+    // Функция для продления подписки
+    async function extendSubscription() {
+      try {
+        await initializeContract();
+        const extendSub = await SubscriptionContract.extendSubscription();
+        document.getElementById("textSubscription").innerText = `Вы продлили подписку!`;
+      } catch (error) {
+        console.error('Error extend sub:', error);
+      }
+    }
+
+    // Функция для отмены подписки (досрочное завершение)
+    async function cancelSubscription() {
+      try {
+        await initializeContract();
+        const cancelSub = await SubscriptionContract.cancelSubscription();
+        document.getElementById("textSubscription").innerText = `Вы отменили подписку!`;
+      } catch (error) {
+        console.error('Error cancel sub:', error);
+      }
+    }
+
+    // Функция для проверки времени окончания подписки для указанного адреса
+    async function getSubscriptionExpiration() {
+      try {
+        await initializeContract();
+        const user = document.getElementById("wallet").value;
+        const durationSub = await SubscriptionContract.getSubscriptionExpiration(user);
+        document.getElementById("textSubscription").innerText = `До конца подписки: ${Math.floor(durationSub/86400)} дней`;
+      } catch (error) {
+        console.error('Error get sub expire:', error);
+      }
+    }
+
+  </script>
+  <div>
+    <h1>SubsWave</h1>
+    <h2>Проект для работы с подписками</h2>
+    <label for="wallet">Введи кошелёк:</label> <br />
+    <input type="text" id="wallet" />
+    <button onclick="subscribe()">Подписаться</button>
+    <button onclick="isSubscribed()">Проверить подписку</button>
+    <button onclick="extendSubscription()">Продлить подписку</button>
+    <button onclick="cancelSubscription()">Отменить подписку</button>
+    <button onclick="getSubscriptionExpiration()">Длительность подписки</button>
+    <p id="textSubscription"></p>
+  </div>
+</body>
+</html>
